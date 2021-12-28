@@ -213,7 +213,7 @@ void UpdateMissionDestroySentries(TFTeam team)
 				if (view_as<TFTeam>(buster.GetProp(Prop_Data, "m_iTeamNum")) == TFTeam_Red)
 				{
 					SetEntityRenderMode(buster.index, RENDER_TRANSCOLOR);
-					SetEntityRenderColor(buster.index, 255, 0, 0);
+					SetEntityRenderColor(buster.index, 255, 64, 64, 255);
 				}
 				
 				didSpawn = true;
