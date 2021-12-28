@@ -1,0 +1,19 @@
+"Games"
+{
+	"tf"
+	{
+		"Offsets"
+		{
+			"CTFPlayer::m_accumulatedSentryGunDamageDealt"
+			{
+				"linux"		"9060"
+				"windows"	"9056"
+			}
+			"CTFPlayer::m_accumulatedSentryGunKillCount"
+			{
+				"linux"		"9064"
+				"windows"	"9060"
+			}
+		}
+	}
+}
