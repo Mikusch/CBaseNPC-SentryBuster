@@ -80,6 +80,7 @@ enum struct CountdownTimer
 ConVar phys_pushscale;
 ConVar tf_mvm_default_sentry_buster_damage_dealt_threshold;
 ConVar tf_mvm_default_sentry_buster_kill_threshold;
+ConVar tf_mvm_miniboss_scale;
 
 // Offsets
 int g_offsetAccumulatedSentryGunDamageDealt;
@@ -101,6 +102,7 @@ public void OnPluginStart()
 	phys_pushscale = FindConVar("phys_pushscale");
 	tf_mvm_default_sentry_buster_damage_dealt_threshold = FindConVar("tf_mvm_default_sentry_buster_damage_dealt_threshold");
 	tf_mvm_default_sentry_buster_kill_threshold = FindConVar("tf_mvm_default_sentry_buster_kill_threshold");
+	tf_mvm_miniboss_scale = FindConVar("tf_mvm_miniboss_scale");
 	
 	SentryBuster_Init();
 	
@@ -310,6 +312,9 @@ SpawnLocationResult DoTeleporterOverride(TFTeam team, int spawnEnt, float spawnP
 	while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
 	{
 		if (TF2_GetObjectType(obj) != TFObject_Teleporter)
+			continue;
+		
+		if (TF2_GetObjectType(obj) != TFObjectMode_Exit)
 			continue;
 		
 		if (view_as<TFTeam>(GetEntProp(obj, Prop_Data, "m_iTeamNum")) != team)

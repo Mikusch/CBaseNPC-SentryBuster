@@ -108,8 +108,8 @@ methodmap SentryBuster < CBaseCombatCharacter
 
 	public void OnCreate()
 	{
-		this.SetProp(Prop_Data, "m_iHealth", 4500);
-		this.SetPropFloat(Prop_Data, "m_flModelScale", 1.75);
+		this.SetProp(Prop_Data, "m_iHealth", 2500);
+		this.SetPropFloat(Prop_Data, "m_flModelScale", tf_mvm_miniboss_scale.FloatValue);
 		// We robots, don't bleed
 		this.SetProp(Prop_Data, "m_bloodColor", -1);
 		// For triggers
