@@ -14,6 +14,11 @@
 				"linux"		"9064"
 				"windows"	"9060"
 			}
+			"CBaseObject::m_bCarried"
+			{
+				"linux"		"2584"
+				"windows"	"2564"
+			}
 		}
 	}
 }

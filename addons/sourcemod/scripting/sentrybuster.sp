@@ -12,6 +12,13 @@
 #define FFADE_PURGE			0x0010		// Purges all other fades, replacing them with this one
 #define SCREENFADE_FRACBITS	9
 
+// m_lifeState values
+#define LIFE_ALIVE				0 // alive
+#define LIFE_DYING				1 // playing death animation or still falling off of a ledge waiting to hit ground
+#define LIFE_DEAD				2 // dead. lying still.
+#define LIFE_RESPAWNABLE		3
+#define LIFE_DISCARDBODY		4
+
 enum ShakeCommand_t
 {
 	SHAKE_START = 0,
@@ -26,7 +33,7 @@ enum SpawnLocationResult
 {
 	SPAWN_LOCATION_NOT_FOUND = 0,
 	SPAWN_LOCATION_NAV,
-	SPAWN_LOCATION_TELEPORTER
+	SPAWN_LOCATION_TELEPORTER,
 };
 
 enum struct CountdownTimer
@@ -85,6 +92,7 @@ ConVar tf_mvm_miniboss_scale;
 // Offsets
 int g_offsetAccumulatedSentryGunDamageDealt;
 int g_offsetAccumulatedSentryGunKillCount;
+int g_offsetCarried;
 
 // Globals
 int g_numSentryBustersSpawned;
@@ -97,6 +105,15 @@ CountdownTimer g_checkForDangerousSentriesTimer[view_as<int>(TFTeam_Blue) + 1];
 
 #include "sentrybuster/base.sp"
 
+public Plugin myinfo =
+{
+	name = "Sentry Buster NPC",
+	author = "Kenzzer & Mikusch",
+	description = "Sentry Buster NPC based on the CBaseNPC extension.",
+	version = "1.0.0",
+	url = "https://github.com/Mikusch/CBaseNPC-SentryBuster"
+}
+
 public void OnPluginStart()
 {
 	phys_pushscale = FindConVar("phys_pushscale");
@@ -106,22 +123,19 @@ public void OnPluginStart()
 	
 	SentryBuster_Init();
 	
-	HookEvent("teamplay_round_start", Event_TeamplayRoundStart);
-	
 	RegAdminCmd("sm_bust", Command_Buster, ADMFLAG_ROOT);
 	
+	HookEvent("teamplay_round_start", Event_TeamplayRoundStart);
+	
 	GameData gamedata = new GameData("sentrybuster");
-	if (gamedata)
-	{
-		g_offsetAccumulatedSentryGunDamageDealt = gamedata.GetOffset("CTFPlayer::m_accumulatedSentryGunDamageDealt");
-		g_offsetAccumulatedSentryGunKillCount = gamedata.GetOffset("CTFPlayer::m_accumulatedSentryGunKillCount");
-		
-		delete gamedata;
-	}
-	else
-	{
-		SetFailState("Could not find sentrybuster gamedata");
-	}
+	if (!gamedata)
+		SetFailState("Failed to find sentrybuster gamedata");
+	
+	g_offsetAccumulatedSentryGunDamageDealt = gamedata.GetOffset("CTFPlayer::m_accumulatedSentryGunDamageDealt");
+	g_offsetAccumulatedSentryGunKillCount = gamedata.GetOffset("CTFPlayer::m_accumulatedSentryGunKillCount");
+	g_offsetCarried = gamedata.GetOffset("CBaseObject::m_bCarried");
+	
+	delete gamedata;
 }
 
 public void OnMapStart()
@@ -150,6 +164,7 @@ void UpdateMissionDestroySentries(TFTeam team)
 	
 	g_checkForDangerousSentriesTimer[team].Start(GetRandomFloat(5.0, 10.0));
 	
+	// collect all of the dangerous sentries
 	ArrayList dangerousSentryList = new ArrayList();
 	
 	float dmgLimit;
@@ -182,32 +197,33 @@ void UpdateMissionDestroySentries(TFTeam team)
 		}
 	}
 	
-	// Dispatch a sentry busting squad for each dangerous sentry
+	// dispatch a sentry busting squad for each dangerous sentry
 	bool didSpawn = false;
 	
 	for (int i = 0; i < dangerousSentryList.Length; i++)
 	{
 		int targetSentry = dangerousSentryList.Get(i);
 		
-		// If there is already a squad out there destroying this sentry, don't spawn another one
+		// if there is already a squad out there destroying this sentry, don't spawn another one
 		int npc = MaxClients + 1;
 		while ((npc = FindEntityByClassname(npc, "cbasenpc_sentry_buster")) != -1)
 		{
 			if (GetEntPropEnt(npc, Prop_Data, "m_hTarget") == targetSentry)
 			{
-				// There is already a sentry busting squad active for this sentry
+				// there is already a sentry busting squad active for this sentry
 				break;
 			}
 		}
 		
-		float spawnPosition[3];
-		SpawnLocationResult spawnLocationResult = FindSpawnLocation(GetEnemyTeam(team), spawnPosition);
+		// spawn a sentry buster squad to destroy this sentry
+		float vecSpawnPosition[3];
+		SpawnLocationResult spawnLocationResult = FindSpawnLocation(GetEnemyTeam(team), vecSpawnPosition);
 		if (spawnLocationResult != SPAWN_LOCATION_NOT_FOUND)
 		{
 			SentryBuster buster = view_as<SentryBuster>(CreateEntityByName("cbasenpc_sentry_buster"));
 			if (buster.index != -1)
 			{
-				buster.Teleport(spawnPosition);
+				buster.Teleport(vecSpawnPosition);
 				buster.hTarget = targetSentry;
 				buster.SetProp(Prop_Data, "m_iTeamNum", GetEnemyTeam(team));
 				buster.Spawn();
@@ -219,6 +235,18 @@ void UpdateMissionDestroySentries(TFTeam team)
 				}
 				
 				didSpawn = true;
+				
+				for (int client = 1; client <= MaxClients; client++)
+				{
+					if (IsClientInGame(client) && TF2_GetClientTeam(client) == team)
+					{
+						SetVariantString("IsMvMDefender:1");
+						AcceptEntityInput(client, "AddContext");
+						SetVariantString("TLK_MVM_SENTRY_BUSTER");
+						AcceptEntityInput(client, "SpeakResponseConcept");
+						AcceptEntityInput(client, "ClearContext");
+					}
+				}
 				
 				// what bot should do after spawning at teleporter exit
 				if (spawnLocationResult == SPAWN_LOCATION_TELEPORTER)
@@ -256,17 +284,16 @@ void OnBotTeleported(CBaseCombatCharacter bot)
 {
 	EmitGameSoundToAll("MVM.Robot_Teleporter_Deliver", s_lastTeleporter);
 	
-	float angles[3], fwd[3];
-	GetEntPropVector(s_lastTeleporter, Prop_Data, "m_angAbsRotation", angles);
-	GetAngleVectors(angles, fwd, NULL_VECTOR, NULL_VECTOR);
+	float vecAngles[3], vecForward[3];
+	GetEntPropVector(s_lastTeleporter, Prop_Data, "m_angAbsRotation", vecAngles);
+	GetAngleVectors(vecAngles, vecForward, NULL_VECTOR, NULL_VECTOR);
 	
-	float origin[3];
-	bot.GetPropVector(Prop_Data, "m_vecAbsOrigin", origin);
+	float vecOrigin[3];
+	bot.GetAbsOrigin(vecOrigin);
 	
-	ScaleVector(fwd, 50.0);
-	AddVectors(origin, fwd, origin);
-	
-	bot.MyNextBotPointer().GetLocomotionInterface().FaceTowards(origin);
+	ScaleVector(vecForward, 50.0);
+	AddVectors(vecOrigin, vecForward, vecOrigin);
+	bot.MyNextBotPointer().GetLocomotionInterface().FaceTowards(vecOrigin);
 }
 
 SpawnLocationResult FindSpawnLocation(TFTeam team, float spawnPosition[3])
@@ -284,6 +311,7 @@ SpawnLocationResult FindSpawnLocation(TFTeam team, float spawnPosition[3])
 		activeSpawns.Push(spawn);
 	}
 	
+	// treat spawn points as deck of cards. shuffle it when we run out
 	if (g_spawnCount >= activeSpawns.Length)
 	{
 		activeSpawns.Sort(Sort_Random, Sort_Integer);
@@ -292,6 +320,7 @@ SpawnLocationResult FindSpawnLocation(TFTeam team, float spawnPosition[3])
 	
 	if (activeSpawns.Length > 0)
 	{
+		// if any invading teleporters exist with this name, use them instead
 		SpawnLocationResult result = DoTeleporterOverride(team, activeSpawns.Get(g_spawnCount), spawnPosition);
 		if (result != SPAWN_LOCATION_NOT_FOUND)
 		{
@@ -314,7 +343,7 @@ SpawnLocationResult DoTeleporterOverride(TFTeam team, int spawnEnt, float spawnP
 		if (TF2_GetObjectType(obj) != TFObject_Teleporter)
 			continue;
 		
-		if (TF2_GetObjectType(obj) != TFObjectMode_Exit)
+		if (TF2_GetObjectMode(obj) != TFObjectMode_Exit)
 			continue;
 		
 		if (view_as<TFTeam>(GetEntProp(obj, Prop_Data, "m_iTeamNum")) != team)
@@ -342,9 +371,9 @@ SpawnLocationResult DoTeleporterOverride(TFTeam team, int spawnEnt, float spawnP
 		return SPAWN_LOCATION_TELEPORTER;
 	}
 	
-	float center[3];
-	WorldSpaceCenter(spawnEnt, center);
-	CNavArea nav = TheNavMesh.GetNearestNavArea(center);
+	float vecCenter[3];
+	WorldSpaceCenter(spawnEnt, vecCenter);
+	CNavArea nav = TheNavMesh.GetNearestNavArea(vecCenter);
 	if (nav == NULL_AREA)
 		return SPAWN_LOCATION_NOT_FOUND;
 	
@@ -354,7 +383,7 @@ SpawnLocationResult DoTeleporterOverride(TFTeam team, int spawnEnt, float spawnP
 	return SPAWN_LOCATION_NAV;
 }
 
-public void GetSentryBusterDamageAndKillThreshold(TFTeam team, float &damage, int &kills)
+void GetSentryBusterDamageAndKillThreshold(TFTeam team, float &damage, int &kills)
 {
 	int sentries;
 	
@@ -435,14 +464,14 @@ public Action Command_Buster(int client, int args)
 	bool tn_is_ml;
 	
 	if ((target_count = ProcessTargetString(
-				targetName, 
-				client, 
-				target_list, 
-				MAXPLAYERS, 
-				0, 
-				target_name, 
-				sizeof(target_name), 
-				tn_is_ml)) <= 0)
+			targetName,
+			client,
+			target_list,
+			MAXPLAYERS,
+			0,
+			target_name,
+			sizeof(target_name),
+			tn_is_ml)) <= 0)
 	{
 		return Plugin_Handled;
 	}
@@ -451,7 +480,7 @@ public Action Command_Buster(int client, int args)
 	{
 		int target = target_list[i];
 		
-		if (IsClientSourceTV(target))continue; // Exclude the sourcetv bot
+		if (IsClientSourceTV(target)) continue; // Exclude the SourceTV bot
 		
 		SentryBuster buster = view_as<SentryBuster>(CreateEntityByName("cbasenpc_sentry_buster"));
 		if (buster.index != -1)
@@ -513,8 +542,7 @@ stock int PrecacheParticleSystem(const char[] particleSystem)
 	return index;
 }
 
-void TE_Particle(int iParticleIndex, const float origin[3] = NULL_VECTOR, const float start[3] = NULL_VECTOR, 
-	const float angles[3] = NULL_VECTOR, int entindex = -1, int attachtype = -1, int attachpoint = -1, bool resetParticles = true)
+void TE_Particle(int iParticleIndex, const float origin[3] = NULL_VECTOR, const float start[3] = NULL_VECTOR, const float angles[3] = NULL_VECTOR, int entindex = -1, int attachtype = -1, int attachpoint = -1, bool resetParticles = true)
 {
 	TE_Start("TFParticleEffect");
 	TE_WriteFloat("m_vecOrigin[0]", origin[0]);
@@ -556,7 +584,7 @@ stock int FixedUnsigned16(float value, int scale)
 	return output;
 }
 
-public void UTIL_ScreenFade(int player, int color[4], float fadeTime, float fadeHold, int flags)
+void UTIL_ScreenFade(int player, int color[4], float fadeTime, float fadeHold, int flags)
 {
 	BfWrite bf = UserMessageToBfWrite(StartMessageOne("Fade", player, USERMSG_RELIABLE));
 	if (bf != null)
@@ -655,7 +683,6 @@ void CalculateMeleeDamageForce(float buffer[3], float damage, const float vecMel
 {
 	// Calculate an impulse large enough to push a 75kg man 4 in/sec per point of damage
 	float forceScale = damage * 75 * 4;
-	
 	NormalizeVector(vecMeleeDir, buffer);
 	ScaleVector(buffer, forceScale);
 	ScaleVector(buffer, phys_pushscale.FloatValue);
@@ -664,15 +691,15 @@ void CalculateMeleeDamageForce(float buffer[3], float damage, const float vecMel
 
 stock void WorldSpaceCenter(int entity, float buffer[3])
 {
-	float origin[3], mins[3], maxs[3], offset[3];
-	GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", origin);
-	GetEntPropVector(entity, Prop_Data, "m_vecMins", mins);
-	GetEntPropVector(entity, Prop_Data, "m_vecMaxs", maxs);
+	float vecOrigin[3], vecMins[3], vecMaxs[3], vecOffset[3];
+	GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", vecOrigin);
+	GetEntPropVector(entity, Prop_Data, "m_vecMins", vecMins);
+	GetEntPropVector(entity, Prop_Data, "m_vecMaxs", vecMaxs);
 	
-	AddVectors(mins, maxs, offset);
-	ScaleVector(offset, 0.5);
+	AddVectors(vecMins, vecMaxs, vecOffset);
+	ScaleVector(vecOffset, 0.5);
 	
-	AddVectors(origin, offset, buffer);
+	AddVectors(vecOrigin, vecOffset, buffer);
 }
 
 stock TFTeam GetEnemyTeam(TFTeam team)

@@ -16,7 +16,7 @@ methodmap SentryBuster < CBaseCombatCharacter
 			SetEntPropEnt(this.index, Prop_Data, "m_hTarget", entity);
 		}
 	}
-
+	
 	public static void Precache()
 	{
 		PrecacheScriptSound("MVM.SentryBusterExplode");
@@ -24,33 +24,33 @@ methodmap SentryBuster < CBaseCombatCharacter
 		PrecacheScriptSound("MVM.SentryBusterLoop");
 		PrecacheScriptSound("MVM.SentryBusterIntro");
 		PrecacheScriptSound("MVM.SentryBusterStep");
-
+		
 		PrecacheModel("models/bots/demo/bot_sentry_buster.mdl", true);
-
+		
 		g_particleExplosion[0] = PrecacheParticleSystem("explosionTrail_seeds_mvm");
 		g_particleExplosion[1] = PrecacheParticleSystem("fluidSmokeExpl_ring_mvm");
 		g_particleImpact = PrecacheParticleSystem("bot_impact_heavy");
 	}
-
+	
 	public void Detonate()
 	{
 		int myTeam = this.GetProp(Prop_Data, "m_iTeamNum");
-
+		
 		float pos[3], ang[3];
 		this.GetAbsOrigin(pos);
 		this.GetAbsAngles(ang);
-
+		
 		TE_Particle(g_particleExplosion[0], pos, _, ang);
 		TE_SendToAll();
 		TE_Particle(g_particleExplosion[1], pos, _, ang);
 		TE_SendToAll();
 		
 		EmitGameSoundToAll("MVM.SentryBusterExplode", SOUND_FROM_WORLD, .origin = pos);
-
+		
 		UTIL_ScreenShake(pos, 25.0, 5.0, 5.0, 1000.0, SHAKE_START, false);
-
+		
 		ArrayList victims = new ArrayList();
-		int entity = -1;
+		int entity = MaxClients + 1;
 		while ((entity = FindEntityByClassname(entity, "*")) != -1)
 		{
 			if (IsValidEntity(entity))
@@ -62,50 +62,50 @@ methodmap SentryBuster < CBaseCombatCharacter
 				}
 			}
 		}
-
+		
 		float center[3], victimCenter[3], delta[3];
 		this.WorldSpaceCenter(center);
-
+		
 		IVision vision = this.MyNextBotPointer().GetVisionInterface();
-
-		for(int i = 0, max = victims.Length; i < max; ++i)
+		
+		for (int i = 0, max = victims.Length; i < max; ++i)
 		{
 			CBaseCombatCharacter victim = victims.Get(i);
 			victim.WorldSpaceCenter(victimCenter);
-
+			
 			SubtractVectors(victimCenter, center, delta);
-
+			
 			if (GetVectorLength(delta) > tf_bot_suicide_bomb_range.FloatValue)
 			{
 				continue;
 			}
-
+			
 			if (0 < victim.index && victim.index <= MaxClients)
 			{
 				int white[4] = { 255, 255, 255, 255 };
 				UTIL_ScreenFade(victim.index, white, 1.0, 0.1, FFADE_IN);
 			}
-
+			
 			if (vision.IsLineOfSightClearToEntity(victim.index))
 			{
 				float damage = float(victim.GetProp(Prop_Data, "m_iHealth"));
-
-				float force[3];
-				CalculateMeleeDamageForce(force, damage, delta, 1.0);
-
-				SDKHooks_TakeDamage(victim.index, this.index, this.index, damage * 4, DMG_BLAST, _, force, center);
+				
+				float vecDamageForce[3];
+				CalculateMeleeDamageForce(vecDamageForce, damage, delta, 1.0);
+				
+				SDKHooks_TakeDamage(victim.index, this.index, this.index, damage * 4, DMG_BLAST, _, vecDamageForce, center);
 			}
 		}
-
+		
 		if (this.GetProp(Prop_Data, "m_bWasKilled"))
 		{
 			g_numSentryBustersKilled++;
 		}
-
+		
 		delete victims;
 		RequestFrame(Frame_DeleteBuster, EntIndexToEntRef(this.index));
 	}
-
+	
 	public void OnCreate()
 	{
 		this.SetProp(Prop_Data, "m_iHealth", 2500);
@@ -114,7 +114,7 @@ methodmap SentryBuster < CBaseCombatCharacter
 		this.SetProp(Prop_Data, "m_bloodColor", -1);
 		// For triggers
 		this.AddFlag(FL_CLIENT);
-
+		
 		this.SetModel("models/bots/demo/bot_sentry_buster.mdl");
 		this.SetProp(Prop_Data, "m_moveXPoseParameter", this.LookupPoseParameter("move_x"));
 		this.SetProp(Prop_Data, "m_moveYPoseParameter", this.LookupPoseParameter("move_y"));
@@ -122,13 +122,13 @@ methodmap SentryBuster < CBaseCombatCharacter
 		this.SetProp(Prop_Data, "m_runSequence", this.LookupSequence("Run_MELEE"));
 		this.SetProp(Prop_Data, "m_airSequence", this.LookupSequence("a_jumpfloat_ITEM1"));
 		this.hTarget = INVALID_ENT_REFERENCE;
-
+		
 		SDKHook(this.index, SDKHook_SpawnPost, SentryBuster_SpawnPost);
 		SDKHook(this.index, SDKHook_OnTakeDamageAlivePost, SentryBuster_OnTakeDamageAlivePost);
 		this.Hook_HandleAnimEvent(SentryBuster_HandleAnimEvent);
-
+		
 		CBaseNPC npc = TheNPCs.FindNPCByEntIndex(this.index);
-
+		
 		npc.flStepSize = 18.0;
 		npc.flGravity = 800.0;
 		npc.flAcceleration = 2000.0;
@@ -137,10 +137,10 @@ methodmap SentryBuster < CBaseCombatCharacter
 		npc.flRunSpeed = 440.0;
 		npc.flDeathDropHeight = 2000.0;
 	}
-
+	
 	public void OnSpawnPost()
 	{
-		EmitGameSoundToAll("MVM.SentryBusterLoop",  this.index);
+		EmitGameSoundToAll("MVM.SentryBusterLoop", this.index);
 	}
 }
 
@@ -165,7 +165,7 @@ static void SentryBuster_SpawnPost(int entity)
 	buster.OnSpawnPost();
 }
 
-public void SentryBuster_OnTakeDamageAlivePost(int victim, int attacker, int inflictor, float damage, int damagetype, int weapon, const float damageForce[3], const float damagePosition[3]) 
+public void SentryBuster_OnTakeDamageAlivePost(int victim, int attacker, int inflictor, float damage, int damagetype, int weapon, const float damageForce[3], const float damagePosition[3])
 {
 	int health = GetEntProp(victim, Prop_Data, "m_iHealth");
 	if (health < 1)
@@ -173,32 +173,31 @@ public void SentryBuster_OnTakeDamageAlivePost(int victim, int attacker, int inf
 		health = 1;
 		// We cannot die, no matter how. We go kaboom first
 		SetEntProp(victim, Prop_Data, "m_iHealth", health);
-
 		SetEntProp(victim, Prop_Data, "m_bWasKilled", true);
 	}
-
+	
 	TE_Particle(g_particleImpact, damagePosition);
 	TE_SendToAll();
-
+	
 	Event event = CreateEvent("npc_hurt");
-	if (event) 
+	if (event)
 	{
 		event.SetInt("entindex", victim);
 		event.SetInt("health", health > 0 ? health : 0);
 		event.SetInt("damageamount", RoundToFloor(damage));
 		event.SetBool("crit", (damagetype & DMG_ACID) == DMG_ACID);
-
+		
 		if (attacker > 0 && attacker <= MaxClients)
 		{
 			event.SetInt("attacker_player", GetClientUserId(attacker));
 			event.SetInt("weaponid", 0);
 		}
-		else 
+		else
 		{
 			event.SetInt("attacker_player", 0);
 			event.SetInt("weaponid", 0);
 		}
-
+		
 		event.Fire();
 	}
 }
@@ -222,22 +221,23 @@ void SentryBuster_Init()
 {
 	SentryBusterExplode_Init();
 	SentryBusterMain_InitBehavior();
-
+	
 	tf_bot_suicide_bomb_range = FindConVar("tf_bot_suicide_bomb_range");
-
+	
 	EntityFactory = new CEntityFactory("cbasenpc_sentry_buster", SentryBuster_OnCreate, SentryBuster_OnRemove);
 	EntityFactory.DeriveFromNPC();
 	EntityFactory.SetInitialActionFactory(SentryBusterMain_GetFactory());
 	EntityFactory.BeginDataMapDesc()
-		.DefineBoolField("m_bWasKilled")
 		.DefineIntField("m_moveXPoseParameter")
 		.DefineIntField("m_moveYPoseParameter")
 		.DefineIntField("m_idleSequence")
 		.DefineIntField("m_runSequence")
 		.DefineIntField("m_airSequence")
 		.DefineEntityField("m_hTarget")
+		.DefineBoolField("m_bWasKilled")
+		.DefineVectorField("m_lastKnownTargetPosition")
 	.EndDataMapDesc();
-
+	
 	EntityFactory.Install();
 }
 
