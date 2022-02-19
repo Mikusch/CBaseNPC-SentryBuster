@@ -92,7 +92,6 @@ ConVar tf_mvm_miniboss_scale;
 // Offsets
 int g_offsetAccumulatedSentryGunDamageDealt;
 int g_offsetAccumulatedSentryGunKillCount;
-int g_offsetCarried;
 
 // Globals
 int g_numSentryBustersSpawned;
@@ -133,7 +132,6 @@ public void OnPluginStart()
 	
 	g_offsetAccumulatedSentryGunDamageDealt = gamedata.GetOffset("CTFPlayer::m_accumulatedSentryGunDamageDealt");
 	g_offsetAccumulatedSentryGunKillCount = gamedata.GetOffset("CTFPlayer::m_accumulatedSentryGunKillCount");
-	g_offsetCarried = gamedata.GetOffset("CBaseObject::m_bCarried");
 	
 	delete gamedata;
 }

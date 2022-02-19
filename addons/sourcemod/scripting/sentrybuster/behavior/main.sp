@@ -54,7 +54,7 @@ static int SentryBusterMain_Update(NextBotAction action, int actor, float interv
 		}
 		
 		// if the engineer is carrying his sentry, he becomes the victim
-		if (HasEntProp(target, Prop_Send, "m_iObjectType") && TF2_GetObjectType(target) == TFObject_Sentry && GetEntData(target, g_offsetCarried))
+		if (HasEntProp(target, Prop_Send, "m_iObjectType") && TF2_GetObjectType(target) == TFObject_Sentry && GetEntProp(target, Prop_Send, "m_bCarried"))
 		{
 			int owner = GetEntPropEnt(target, Prop_Send, "m_hBuilder");
 			if (IsValidEntity(owner))
