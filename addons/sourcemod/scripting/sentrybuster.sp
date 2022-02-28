@@ -84,6 +84,9 @@ enum struct CountdownTimer
 }
 
 // ConVars
+ConVar sentry_buster_cooldown_duration;
+ConVar sentry_buster_health;
+
 ConVar phys_pushscale;
 ConVar tf_mvm_default_sentry_buster_damage_dealt_threshold;
 ConVar tf_mvm_default_sentry_buster_kill_threshold;
@@ -115,6 +118,9 @@ public Plugin myinfo =
 
 public void OnPluginStart()
 {
+	sentry_buster_cooldown_duration = CreateConVar("sentry_buster_cooldown_duration", "60");
+	sentry_buster_health = CreateConVar("sentry_buster_health", "2500");
+	
 	phys_pushscale = FindConVar("phys_pushscale");
 	tf_mvm_default_sentry_buster_damage_dealt_threshold = FindConVar("tf_mvm_default_sentry_buster_damage_dealt_threshold");
 	tf_mvm_default_sentry_buster_kill_threshold = FindConVar("tf_mvm_default_sentry_buster_kill_threshold");
@@ -221,9 +227,9 @@ void UpdateMissionDestroySentries(TFTeam team)
 			SentryBuster buster = view_as<SentryBuster>(CreateEntityByName("cbasenpc_sentry_buster"));
 			if (buster.index != -1)
 			{
-				buster.Teleport(vecSpawnPosition);
 				buster.hTarget = targetSentry;
 				buster.SetProp(Prop_Data, "m_iTeamNum", GetEnemyTeam(team));
+				buster.Teleport(vecSpawnPosition);
 				buster.Spawn();
 				
 				if (view_as<TFTeam>(buster.GetProp(Prop_Data, "m_iTeamNum")) == TFTeam_Red)
@@ -253,6 +259,10 @@ void UpdateMissionDestroySentries(TFTeam team)
 				}
 			}
 		}
+		else
+		{
+			LogError("Can't find a place to spawn a sentry destroying squad");
+		}
 	}
 	
 	delete dangerousSentryList;
@@ -270,7 +280,8 @@ void UpdateMissionDestroySentries(TFTeam team)
 			EmitGameSoundToTeam(team, "Announcer.MVM_Sentry_Buster_Alert");
 		}
 		
-		float cooldown = 60.0 + g_numSentryBustersKilled * 60.0;
+		float cooldownDuration = sentry_buster_cooldown_duration.FloatValue;
+		float cooldown = cooldownDuration + g_numSentryBustersKilled * cooldownDuration;
 		
 		g_numSentryBustersKilled = 0;
 		
