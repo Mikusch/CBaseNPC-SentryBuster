@@ -445,7 +445,8 @@ public Action Command_Buster(int client, int args)
 {
 	if (client == 0 || args != 3)
 	{
-		return Plugin_Continue;
+		ReplyToCommand(client, "[SM] Usage: sm_bust <spawn team> <buster team>");
+		return Plugin_Handled;
 	}
 	
 	char sSpawnTeam[5], sBusterTeam[5];
