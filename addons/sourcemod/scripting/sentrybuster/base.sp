@@ -97,6 +97,21 @@ methodmap SentryBuster < CBaseCombatCharacter
 			}
 		}
 		
+		if (!this.GetProp(Prop_Data, "m_bWasSuccessful"))
+		{
+			for (int client = 1; client <= MaxClients; client++)
+			{
+				if (IsClientInGame(client) && GetClientTeam(client) != myTeam)
+				{
+					SetVariantString("IsMvMDefender:1");
+					AcceptEntityInput(client, "AddContext");
+					SetVariantString("TLK_MVM_SENTRY_BUSTER_DOWN");
+					AcceptEntityInput(client, "SpeakResponseConcept");
+					AcceptEntityInput(client, "ClearContext");
+				}
+			}
+		}
+		
 		if (this.GetProp(Prop_Data, "m_bWasKilled"))
 		{
 			g_numSentryBustersKilled++;
@@ -234,6 +249,7 @@ void SentryBuster_Init()
 		.DefineIntField("m_runSequence")
 		.DefineIntField("m_airSequence")
 		.DefineEntityField("m_hTarget")
+		.DefineBoolField("m_bWasSuccessful")
 		.DefineBoolField("m_bWasKilled")
 		.DefineVectorField("m_lastKnownTargetPosition")
 	.EndDataMapDesc();

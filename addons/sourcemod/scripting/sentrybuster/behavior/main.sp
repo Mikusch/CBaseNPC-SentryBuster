@@ -42,9 +42,9 @@ static int SentryBusterMain_Update(NextBotAction action, int actor, float interv
 	bool onGround = view_as<bool>(GetEntityFlags(actor) & FL_ONGROUND);
 	
 	float vecTargetPos[3];
-	GetEntPropVector(actor, Prop_Data, "m_lastKnownTargetPosition", vecTargetPos);
+	pCC.GetPropVector(Prop_Data, "m_lastKnownTargetPosition", vecTargetPos);
 	
-	int target = GetEntPropEnt(actor, Prop_Data, "m_hTarget");
+	int target = pCC.GetPropEnt(Prop_Data, "m_hTarget");
 	if (IsValidEntity(target))
 	{
 		// update chase destination
@@ -63,7 +63,7 @@ static int SentryBusterMain_Update(NextBotAction action, int actor, float interv
 			}
 		}
 		
-		SetEntPropVector(actor, Prop_Data, "m_lastKnownTargetPosition", vecTargetPos);
+		pCC.SetPropVector(Prop_Data, "m_lastKnownTargetPosition", vecTargetPos);
 	}
 	
 	float dist = GetVectorDistance(vecTargetPos, vecPos);
@@ -99,16 +99,17 @@ static int SentryBusterMain_Update(NextBotAction action, int actor, float interv
 	}
 	else if (onGround)
 	{
+		pCC.SetProp(Prop_Data, "m_bWasSuccessful", pCC.GetProp(Prop_Data, "m_iHealth") > 1);
 		return action.ChangeTo(SentryBusterExplode_Create());
 	}
 	
 	float speed = loco.GetGroundSpeed();
 	
-	int sequence = GetEntProp(actor, Prop_Send, "m_nSequence");
+	int sequence = pCC.GetProp(Prop_Send, "m_nSequence");
 	
 	if (speed < 0.01)
 	{
-		int idleSequence = GetEntProp(actor, Prop_Data, "m_idleSequence");
+		int idleSequence = pCC.GetProp(Prop_Data, "m_idleSequence");
 		if (sequence != idleSequence)
 		{
 			pCC.ResetSequence(idleSequence);
@@ -116,8 +117,8 @@ static int SentryBusterMain_Update(NextBotAction action, int actor, float interv
 	}
 	else
 	{
-		int runSequence = GetEntProp(actor, Prop_Data, "m_runSequence");
-		int airSequence = GetEntProp(actor, Prop_Data, "m_airSequence");
+		int runSequence = pCC.GetProp(Prop_Data, "m_runSequence");
+		int airSequence = pCC.GetProp(Prop_Data, "m_airSequence");
 		
 		if (!onGround)
 		{
