@@ -208,6 +208,8 @@ void UpdateMissionDestroySentries(TFTeam team)
 	{
 		int targetSentry = dangerousSentryList.Get(i);
 		
+		bool squadActive = false;
+		
 		// if there is already a squad out there destroying this sentry, don't spawn another one
 		int npc = MaxClients + 1;
 		while ((npc = FindEntityByClassname(npc, "cbasenpc_sentry_buster")) != -1)
@@ -215,8 +217,14 @@ void UpdateMissionDestroySentries(TFTeam team)
 			if (GetEntPropEnt(npc, Prop_Data, "m_hTarget") == targetSentry)
 			{
 				// there is already a sentry busting squad active for this sentry
+				squadActive = true;
 				break;
 			}
+		}
+		
+		if (squadActive)
+		{
+			continue;
 		}
 		
 		// spawn a sentry buster squad to destroy this sentry
