@@ -139,6 +139,7 @@ methodmap SentryBuster < CBaseCombatCharacter
 		this.hTarget = INVALID_ENT_REFERENCE;
 		
 		SDKHook(this.index, SDKHook_SpawnPost, SentryBuster_SpawnPost);
+		SDKHook(this.index, SDKHook_OnTakeDamage, SentryBuster_OnTakeDamage);
 		SDKHook(this.index, SDKHook_OnTakeDamageAlivePost, SentryBuster_OnTakeDamageAlivePost);
 		this.Hook_HandleAnimEvent(SentryBuster_HandleAnimEvent);
 		
@@ -178,6 +179,14 @@ static void SentryBuster_SpawnPost(int entity)
 {
 	SentryBuster buster = view_as<SentryBuster>(entity);
 	buster.OnSpawnPost();
+}
+
+public Action SentryBuster_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
+{
+	if (GetEntProp(victim, Prop_Data, "m_iTeamNum") == GetEntProp(attacker, Prop_Data, "m_iTeamNum"))
+		return Plugin_Handled;
+	
+	return Plugin_Continue;
 }
 
 public void SentryBuster_OnTakeDamageAlivePost(int victim, int attacker, int inflictor, float damage, int damagetype, int weapon, const float damageForce[3], const float damagePosition[3])
