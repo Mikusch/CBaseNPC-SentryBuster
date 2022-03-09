@@ -84,6 +84,7 @@ enum struct CountdownTimer
 }
 
 // ConVars
+ConVar sentry_buster_autospawn;
 ConVar sentry_buster_cooldown_duration;
 ConVar sentry_buster_health;
 
@@ -118,6 +119,7 @@ public Plugin myinfo =
 
 public void OnPluginStart()
 {
+	sentry_buster_autospawn = CreateConVar("sentry_buster_autospawn", "1");
 	sentry_buster_cooldown_duration = CreateConVar("sentry_buster_cooldown_duration", "60");
 	sentry_buster_health = CreateConVar("sentry_buster_health", "2500");
 	
@@ -149,6 +151,9 @@ public void OnMapStart()
 
 public void OnGameFrame()
 {
+	if (!sentry_buster_autospawn.BoolValue)
+		return;
+	
 	if (GameRules_GetRoundState() == RoundState_Preround)
 		return;
 	
