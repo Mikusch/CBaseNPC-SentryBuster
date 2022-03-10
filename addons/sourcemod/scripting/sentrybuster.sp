@@ -458,7 +458,7 @@ public Action Command_Buster(int client, int args)
 {
 	if (client == 0 || args != 3)
 	{
-		ReplyToCommand(client, "[SM] Usage: sm_bust <spawn team> <buster team>");
+		ReplyToCommand(client, "[SM] Usage: sm_bust <#userid|name> <spawn team> <buster team>");
 		return Plugin_Handled;
 	}
 	
