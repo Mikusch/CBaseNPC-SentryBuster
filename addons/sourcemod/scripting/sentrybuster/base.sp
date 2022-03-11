@@ -100,7 +100,7 @@ methodmap SentryBuster < CBaseCombatCharacter
 		if (this.GetProp(Prop_Data, "m_bWasSuccessful"))
 		{
 			int victim = this.GetPropEnt(Prop_Data, "m_hTarget");
-			if (HasEntProp(victim, Prop_Send, "m_iObjectType"))
+			if (IsValidEntity(victim) && HasEntProp(victim, Prop_Send, "m_iObjectType"))
 			{
 				int owner = GetEntPropEnt(victim, Prop_Send, "m_hBuilder");
 				if (IsValidEntity(owner))
