@@ -97,7 +97,27 @@ methodmap SentryBuster < CBaseCombatCharacter
 			}
 		}
 		
-		if (!this.GetProp(Prop_Data, "m_bWasSuccessful"))
+		if (this.GetProp(Prop_Data, "m_bWasSuccessful"))
+		{
+			int victim = this.GetPropEnt(Prop_Data, "m_hTarget");
+			if (HasEntProp(victim, Prop_Send, "m_iObjectType"))
+			{
+				int owner = GetEntPropEnt(victim, Prop_Send, "m_hBuilder");
+				if (IsValidEntity(owner))
+				{
+					Event event = CreateEvent("mvm_sentrybuster_detonate", true);
+					if (event)
+					{
+						event.SetInt("player", owner);
+						event.SetFloat("det_x", pos[0]);
+						event.SetFloat("det_y", pos[1]);
+						event.SetFloat("det_z", pos[2]);
+						event.Fire();
+					}
+				}
+			}
+		}
+		else
 		{
 			for (int client = 1; client <= MaxClients; client++)
 			{
@@ -115,6 +135,13 @@ methodmap SentryBuster < CBaseCombatCharacter
 		if (this.GetProp(Prop_Data, "m_bWasKilled"))
 		{
 			g_numSentryBustersKilled++;
+			
+			Event event = CreateEvent("mvm_sentrybuster_killed", true);
+			if (event)
+			{
+				event.SetInt("sentry_buster", this.index);
+				event.Fire();
+			}
 		}
 		
 		delete victims;
