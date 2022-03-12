@@ -159,6 +159,9 @@ static void SentryBusterMain_OnEnd(NextBotAction action, int actor, NextBotActio
 	PathFollower path = action.GetData("m_PathFollower");
 	if (path)
 	{
+		SentryBuster buster = view_as<SentryBuster>(action.Actor);
+		INextBot bot = buster.MyNextBotPointer();
+		bot.NotifyPathDestruction(path);
 		path.Destroy();
 	}
 }
