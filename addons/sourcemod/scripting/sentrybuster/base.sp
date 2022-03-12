@@ -105,7 +105,7 @@ methodmap SentryBuster < CBaseCombatCharacter
 				int owner = GetEntPropEnt(victim, Prop_Send, "m_hBuilder");
 				if (IsValidEntity(owner))
 				{
-					Event event = CreateEvent("mvm_sentrybuster_detonate", true);
+					Event event = CreateEvent("mvm_sentrybuster_detonate");
 					if (event)
 					{
 						event.SetInt("player", owner);
@@ -136,7 +136,7 @@ methodmap SentryBuster < CBaseCombatCharacter
 		{
 			g_numSentryBustersKilled++;
 			
-			Event event = CreateEvent("mvm_sentrybuster_killed", true);
+			Event event = CreateEvent("mvm_sentrybuster_killed");
 			if (event)
 			{
 				event.SetInt("sentry_buster", this.index);
