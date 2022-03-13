@@ -154,8 +154,9 @@ methodmap SentryBuster < CBaseCombatCharacter
 		this.SetPropFloat(Prop_Data, "m_flModelScale", tf_mvm_miniboss_scale.FloatValue);
 		// We robots, don't bleed
 		this.SetProp(Prop_Data, "m_bloodColor", -1);
-		// For triggers
-		this.AddFlag(FL_CLIENT);
+		// This was originally FL_CLIENT but turned out to cause segfaults due to
+		// code that iterated all tagged FL_CLIENT entities and expected players.
+		this.AddFlag(FL_NPC);
 		
 		this.SetModel("models/bots/demo/bot_sentry_buster.mdl");
 		this.SetProp(Prop_Data, "m_moveXPoseParameter", this.LookupPoseParameter("move_x"));
