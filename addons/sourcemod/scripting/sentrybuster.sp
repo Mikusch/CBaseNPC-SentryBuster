@@ -19,6 +19,23 @@
 #define LIFE_RESPAWNABLE		3
 #define LIFE_DISCARDBODY		4
 
+enum
+{
+	SF_TRIGGER_ALLOW_CLIENTS				= 0x01,		// Players can fire this trigger
+	SF_TRIGGER_ALLOW_NPCS					= 0x02,		// NPCS can fire this trigger
+	SF_TRIGGER_ALLOW_PUSHABLES				= 0x04,		// Pushables can fire this trigger
+	SF_TRIGGER_ALLOW_PHYSICS				= 0x08,		// Physics objects can fire this trigger
+	SF_TRIGGER_ONLY_PLAYER_ALLY_NPCS		= 0x10,		// *if* NPCs can fire this trigger, this flag means only player allies do so
+	SF_TRIGGER_ONLY_CLIENTS_IN_VEHICLES		= 0x20,		// *if* Players can fire this trigger, this flag means only players inside vehicles can 
+	SF_TRIGGER_ALLOW_ALL					= 0x40,		// Everything can fire this trigger EXCEPT DEBRIS!
+	SF_TRIGGER_ONLY_CLIENTS_OUT_OF_VEHICLES	= 0x200,	// *if* Players can fire this trigger, this flag means only players outside vehicles can 
+	SF_TRIG_PUSH_ONCE						= 0x80,		// trigger_push removes itself after firing once
+	SF_TRIG_PUSH_AFFECT_PLAYER_ON_LADDER	= 0x100,	// if pushed object is player on a ladder, then this disengages them from the ladder (HL2only)
+	SF_TRIG_TOUCH_DEBRIS 					= 0x400,	// Will touch physics debris objects
+	SF_TRIGGER_ONLY_NPCS_IN_VEHICLES		= 0x800,	// *if* NPCs can fire this trigger, only NPCs in vehicles do so (respects player ally flag too)
+	SF_TRIGGER_DISALLOW_BOTS                = 0x1000,   // Bots are not allowed to fire this trigger
+}
+
 enum ShakeCommand_t
 {
 	SHAKE_START = 0,
@@ -147,6 +164,16 @@ public void OnPluginStart()
 public void OnMapStart()
 {
 	SentryBuster.Precache();
+	
+	int trigger = MaxClients + 1;
+	while ((trigger = FindEntityByClassname(trigger, "trigger_*")) != -1)
+	{
+		if (HasSpawnFlags(trigger, SF_TRIGGER_ALLOW_CLIENTS))
+		{
+			// Automatically set this trigger to work with NPC's
+			AddSpawnFlags(trigger, SF_TRIGGER_ALLOW_NPCS);
+		}
+	}
 }
 
 public void OnGameFrame()
@@ -160,6 +187,14 @@ public void OnGameFrame()
 	for (TFTeam team = TFTeam_Red; team <= TFTeam_Blue; team++)
 	{
 		UpdateMissionDestroySentries(team);
+	}
+}
+
+public void OnEntityCreated(int entity, const char[] classname)
+{
+	if (strncmp(classname, "trigger_", 8) == 0)
+	{
+		SDKHook(entity, SDKHook_Spawn, SDKHookCB_Trigger_Spawn);
 	}
 }
 
@@ -430,6 +465,17 @@ void GetSentryBusterDamageAndKillThreshold(TFTeam team, float &damage, int &kill
 	float scale = RemapValClamped(float(sentries), 1.0, 6.0, 1.0, 0.5);
 	damage = (sentries >= 2) ? tf_mvm_default_sentry_buster_damage_dealt_threshold.FloatValue * scale : tf_mvm_default_sentry_buster_damage_dealt_threshold.FloatValue;
 	kills = (sentries >= 2) ? RoundFloat(tf_mvm_default_sentry_buster_kill_threshold.IntValue * scale) : tf_mvm_default_sentry_buster_kill_threshold.IntValue;
+}
+
+public Action SDKHookCB_Trigger_Spawn(int trigger)
+{
+	if (HasSpawnFlags(trigger, SF_TRIGGER_ALLOW_CLIENTS))
+	{
+		// Automatically set this trigger to work with NPC's
+		AddSpawnFlags(trigger, SF_TRIGGER_ALLOW_NPCS);
+	}
+	
+	return Plugin_Continue;
 }
 
 public void Event_TeamplayRoundStart(Event event, const char[] name, bool dontBroadcast)
@@ -744,6 +790,16 @@ stock void EmitGameSoundToTeam(TFTeam team, const char[] gameSound)
 			EmitGameSoundToClient(client, gameSound);
 		}
 	}
+}
+
+stock bool HasSpawnFlags(int entity, int flags)
+{
+	return (GetEntProp(entity, Prop_Data, "m_spawnflags") & flags) != 0;
+}
+
+stock void AddSpawnFlags(int entity, int flags)
+{
+	SetEntProp(entity, Prop_Data, "m_spawnflags", GetEntProp(entity, Prop_Data, "m_spawnflags") | flags);
 }
 
 stock any Min(any a, any b)
