@@ -406,6 +406,9 @@ SpawnLocationResult DoTeleporterOverride(TFTeam team, int spawnEnt, float spawnP
 		if (view_as<TFTeam>(GetEntProp(obj, Prop_Data, "m_iTeamNum")) != team)
 			continue;
 		
+		if (GetEntProp(obj, Prop_Send, "m_bCarried"))
+			continue;
+		
 		if (GetEntProp(obj, Prop_Send, "m_bBuilding"))
 			continue;
 		
