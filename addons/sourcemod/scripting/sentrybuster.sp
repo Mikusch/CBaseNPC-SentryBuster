@@ -385,6 +385,7 @@ SpawnLocationResult FindSpawnLocation(TFTeam team, float spawnPosition[3])
 		if (result != SPAWN_LOCATION_NOT_FOUND)
 		{
 			g_spawnCount++;
+			delete activeSpawns;
 			return result;
 		}
 	}
@@ -522,16 +523,6 @@ public Action Command_Buster(int client, int args)
 	int spawnTeam = StringToInt(sSpawnTeam);
 	int busterTeam = StringToInt(sBusterTeam);
 	
-	ArrayList spawns = new ArrayList();
-	int spawn = MaxClients + 1;
-	while ((spawn = FindEntityByClassname(spawn, "info_player_teamspawn")) != -1)
-	{
-		if (GetEntProp(spawn, Prop_Data, "m_iTeamNum") == spawnTeam)
-		{
-			spawns.Push(spawn);
-		}
-	}
-	
 	char targetName[32];
 	GetCmdArg(1, targetName, sizeof(targetName));
 	
@@ -552,11 +543,22 @@ public Action Command_Buster(int client, int args)
 		return Plugin_Handled;
 	}
 	
+	ArrayList spawns = new ArrayList();
+	int spawn = MaxClients + 1;
+	while ((spawn = FindEntityByClassname(spawn, "info_player_teamspawn")) != -1)
+	{
+		if (GetEntProp(spawn, Prop_Data, "m_iTeamNum") == spawnTeam)
+		{
+			spawns.Push(spawn);
+		}
+	}
+	
 	for (int i = 0; i < target_count; i++)
 	{
 		int target = target_list[i];
 		
-		if (IsClientSourceTV(target)) continue; // Exclude the SourceTV bot
+		if (IsClientSourceTV(target))
+			continue;
 		
 		SentryBuster buster = view_as<SentryBuster>(CreateEntityByName("cbasenpc_sentry_buster"));
 		if (buster.index != -1)
@@ -572,6 +574,7 @@ public Action Command_Buster(int client, int args)
 		}
 	}
 	
+	delete spawns;
 	return Plugin_Handled;
 }
 
