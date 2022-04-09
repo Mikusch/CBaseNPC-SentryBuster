@@ -138,7 +138,7 @@ static int SentryBusterMain_Update(NextBotAction action, int actor, float interv
 		float vecForward[3], vecRight[3], vecUp[3];
 		pCC.GetVectors(vecForward, vecRight, vecUp);
 		
-		float vecMotion[3]
+		float vecMotion[3];
 		loco.GetGroundMotionVector(vecMotion);
 		
 		pCC.SetPoseParameter(pCC.GetProp(Prop_Data, "m_moveXPoseParameter"), GetVectorDotProduct(vecMotion, vecForward));

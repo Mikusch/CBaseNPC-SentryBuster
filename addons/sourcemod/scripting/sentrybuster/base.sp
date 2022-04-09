@@ -188,7 +188,7 @@ methodmap SentryBuster < CBaseCombatCharacter
 	}
 }
 
-static Frame_DeleteBuster(int ref)
+static void Frame_DeleteBuster(int ref)
 {
 	int actor = EntRefToEntIndex(ref);
 	if (actor != -1)

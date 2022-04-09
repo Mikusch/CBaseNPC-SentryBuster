@@ -5,6 +5,9 @@
 #include <sdkhooks>
 #include <tf2_stocks>
 
+#pragma semicolon 1
+#pragma newdecls required
+
 #define FFADE_IN			0x0001		// Just here so we don't pass 0 into the function
 #define FFADE_OUT			0x0002		// Fade out (not in)
 #define FFADE_MODULATE		0x0004		// Modulate (don't blend)
@@ -118,7 +121,7 @@ int g_offsetAccumulatedSentryGunKillCount;
 int g_numSentryBustersSpawned;
 int g_numSentryBustersKilled;
 int g_spawnCount;
-int s_lastTeleporter;
+CBaseEntity s_lastTeleporter;
 CountdownTimer g_TalkTimer;
 CountdownTimer g_cooldownTimer[view_as<int>(TFTeam_Blue) + 1];
 CountdownTimer g_checkForDangerousSentriesTimer[view_as<int>(TFTeam_Blue) + 1];
@@ -170,7 +173,7 @@ public void OnMapStart()
 	{
 		if (HasSpawnFlags(trigger, SF_TRIGGER_ALLOW_CLIENTS))
 		{
-			// Automatically set this trigger to work with NPC's
+			// Automatically set this trigger to work with NPCs
 			AddSpawnFlags(trigger, SF_TRIGGER_ALLOW_NPCS);
 		}
 	}
@@ -339,10 +342,10 @@ void UpdateMissionDestroySentries(TFTeam team)
 
 void OnBotTeleported(CBaseCombatCharacter bot)
 {
-	EmitGameSoundToAll("MVM.Robot_Teleporter_Deliver", s_lastTeleporter);
+	EmitGameSoundToAll("MVM.Robot_Teleporter_Deliver", s_lastTeleporter.index);
 	
 	float vecAngles[3], vecForward[3];
-	GetEntPropVector(s_lastTeleporter, Prop_Data, "m_angAbsRotation", vecAngles);
+	s_lastTeleporter.GetPropVector(Prop_Data, "m_angAbsRotation", vecAngles);
 	GetAngleVectors(vecAngles, vecForward, NULL_VECTOR, NULL_VECTOR);
 	
 	float vecOrigin[3];
@@ -378,7 +381,7 @@ SpawnLocationResult FindSpawnLocation(TFTeam team, float spawnPosition[3])
 	if (activeSpawns.Length > 0)
 	{
 		// if any invading teleporters exist with this name, use them instead
-		SpawnLocationResult result = DoTeleporterOverride(team, activeSpawns.Get(g_spawnCount), spawnPosition);
+		SpawnLocationResult result = DoTeleporterOverride(team, CBaseEntity(activeSpawns.Get(g_spawnCount)), spawnPosition);
 		if (result != SPAWN_LOCATION_NOT_FOUND)
 		{
 			g_spawnCount++;
@@ -390,7 +393,7 @@ SpawnLocationResult FindSpawnLocation(TFTeam team, float spawnPosition[3])
 	return SPAWN_LOCATION_NOT_FOUND;
 }
 
-SpawnLocationResult DoTeleporterOverride(TFTeam team, int spawnEnt, float spawnPosition[3])
+SpawnLocationResult DoTeleporterOverride(TFTeam team, CBaseEntity spawnEnt, float spawnPosition[3])
 {
 	ArrayList teleporterList = new ArrayList();
 	
@@ -424,15 +427,16 @@ SpawnLocationResult DoTeleporterOverride(TFTeam team, int spawnEnt, float spawnP
 	if (teleporterList.Length > 0)
 	{
 		int which = GetRandomInt(0, teleporterList.Length - 1);
-		WorldSpaceCenter(teleporterList.Get(which), spawnPosition);
-		s_lastTeleporter = teleporterList.Get(which);
+		CBaseEntity teleporter = CBaseEntity(teleporterList.Get(which));
+		teleporter.WorldSpaceCenter(spawnPosition);
+		s_lastTeleporter = teleporter;
 		
 		delete teleporterList;
 		return SPAWN_LOCATION_TELEPORTER;
 	}
 	
 	float vecCenter[3];
-	WorldSpaceCenter(spawnEnt, vecCenter);
+	spawnEnt.WorldSpaceCenter(vecCenter);
 	CNavArea nav = TheNavMesh.GetNearestNavArea(vecCenter);
 	if (nav == NULL_AREA)
 		return SPAWN_LOCATION_NOT_FOUND;
@@ -474,7 +478,7 @@ public Action SDKHookCB_Trigger_Spawn(int trigger)
 {
 	if (HasSpawnFlags(trigger, SF_TRIGGER_ALLOW_CLIENTS))
 	{
-		// Automatically set this trigger to work with NPC's
+		// Automatically set this trigger to work with NPCs
 		AddSpawnFlags(trigger, SF_TRIGGER_ALLOW_NPCS);
 	}
 	
@@ -759,19 +763,6 @@ void CalculateMeleeDamageForce(float buffer[3], float damage, const float vecMel
 	ScaleVector(buffer, forceScale);
 	ScaleVector(buffer, phys_pushscale.FloatValue);
 	ScaleVector(buffer, scale);
-}
-
-stock void WorldSpaceCenter(int entity, float buffer[3])
-{
-	float vecOrigin[3], vecMins[3], vecMaxs[3], vecOffset[3];
-	GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", vecOrigin);
-	GetEntPropVector(entity, Prop_Data, "m_vecMins", vecMins);
-	GetEntPropVector(entity, Prop_Data, "m_vecMaxs", vecMaxs);
-	
-	AddVectors(vecMins, vecMaxs, vecOffset);
-	ScaleVector(vecOffset, 0.5);
-	
-	AddVectors(vecOrigin, vecOffset, buffer);
 }
 
 stock TFTeam GetEnemyTeam(TFTeam team)

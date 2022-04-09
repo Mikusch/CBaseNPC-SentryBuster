@@ -4,7 +4,7 @@ static int SentryBusterExplode_OnStart(NextBotAction action, int actor, NextBotA
 {
 	CBaseCombatCharacter cb = CBaseCombatCharacter(actor);
 	int sequence = cb.LookupSequence("taunt04");
-
+	
 	if (sequence == -1)
 	{
 		return action.Done();
@@ -14,7 +14,7 @@ static int SentryBusterExplode_OnStart(NextBotAction action, int actor, NextBotA
 	cb.SetPropFloat(Prop_Data, "m_flCycle", 0.0);
 	cb.SetProp(Prop_Data, "m_takedamage", 0);
 	EmitGameSoundToAll("MVM.SentryBusterSpin", actor);
-
+	
 	return action.Continue();
 }
 
@@ -26,7 +26,7 @@ static int SentryBusterExplode_Update(NextBotAction action, int actor, float int
 		view_as<SentryBuster>(actor).Detonate();
 		return action.Done();
 	}
-
+	
 	return action.Continue();
 }
 
