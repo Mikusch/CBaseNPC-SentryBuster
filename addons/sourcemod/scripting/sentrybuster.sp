@@ -181,6 +181,9 @@ public void OnMapStart()
 
 public void OnGameFrame()
 {
+	if (!TheNavMesh.IsLoaded())
+		return;
+	
 	if (!sentry_buster_autospawn.BoolValue)
 		return;
 	
