@@ -6,13 +6,13 @@
 		{
 			"CTFPlayer::m_accumulatedSentryGunDamageDealt"
 			{
-				"linux"		"9060"
-				"windows"	"9056"
+				"linux"		"9080"
+				"windows"	"9076"
 			}
 			"CTFPlayer::m_accumulatedSentryGunKillCount"
 			{
-				"linux"		"9064"
-				"windows"	"9060"
+				"linux"		"9084"
+				"windows"	"9080"
 			}
 		}
 	}
